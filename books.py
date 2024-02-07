@@ -4,6 +4,7 @@
 #     uvicorn.run(app, host="127.0.0.1", port=8000)
 
 from enum import Enum
+from typing import Optional
 
 from fastapi import FastAPI
 
@@ -35,8 +36,24 @@ async def get_all_books():
     return books
 
 
+@app.get('/exclude_book')
+async def exclude_specific_book(skip_book: Optional[str] = None):  # Default parameter is book_1 in swagger
+    # async def exclude_specific_book(skip_book: str = "book_1"):  # Default parameter is book_1 in swagger
+    # async def exclude_specific_book(skip_book: str): # Must give the parameter in swagger
+    if skip_book:
+        new_books = books.copy()
+        del new_books[skip_book]
+        return new_books
+    return books
+
+
+@app.get('/{book_name}')
+async def get_book(book_name: str):
+    return books[book_name]
+
+
 @app.get('/books/{title}')
-async def read_books(title):
+async def read_book(title):
     return {"title": title}
 
 
