@@ -1,3 +1,10 @@
+# if __name__ == "__main__":
+#     import uvicorn
+#
+#     uvicorn.run(app, host="127.0.0.1", port=8000)
+
+from enum import Enum
+
 from fastapi import FastAPI
 
 app = FastAPI()
@@ -28,7 +35,23 @@ async def get_all_books():
     return books
 
 
-if __name__ == "__main__":
-    import uvicorn
+@app.get('/books/{title}')
+async def read_books(title):
+    return {"title": title}
 
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+
+@app.get('/book_id/{book_id}')
+async def read_book_id(book_id: int):
+    return {"book_id": book_id}
+
+
+class DirectionName(str, Enum):
+    north = "north"
+    south = "south"
+    east = "east"
+    west = "west"
+
+
+@app.get("/direction/{direction_name}")
+async def read_direction(direction_name: DirectionName):
+    return {"direction_name": direction_name, 'sub': "up"}
