@@ -36,6 +36,18 @@ async def get_all_books():
     return books
 
 
+@app.post('/')
+async def create_book(book_title, book_author):
+    current_book_id = 0
+    for book in books:
+        x = int(book.split('_')[-1])
+        if x > current_book_id:
+            current_book_id = x
+    books[f'book_{current_book_id + 1}'] = {"title": book_title, "author": book_author}
+    print(books)
+    return books[f'book_{current_book_id + 1}']
+
+
 @app.get('/exclude_book')
 async def exclude_specific_book(skip_book: Optional[str] = None):  # Default parameter is book_1 in swagger
     # async def exclude_specific_book(skip_book: str = "book_1"):  # Default parameter is book_1 in swagger
