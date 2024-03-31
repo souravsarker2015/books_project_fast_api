@@ -64,6 +64,21 @@ async def get_book(book_name: str):
     return books[book_name]
 
 
+@app.put('/{book_name}')
+async def update_book(book_name: str, book_title: str, book_author: str):
+    update_info = {'title': book_title, 'author': book_author}
+    books[book_name] = update_info
+    print(books)
+    return books[book_name]
+
+
+@app.delete('/{book_name}')
+async def delete_book(book_name: str):
+    del books[book_name]
+    print(books)
+    return {"status": 200, "message": f"Book:{book_name} deleted"}
+
+
 @app.get('/books/{title}')
 async def read_book(title):
     return {"title": title}
