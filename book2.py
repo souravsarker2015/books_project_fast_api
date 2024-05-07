@@ -2,9 +2,15 @@ from enum import Enum
 from typing import Optional
 from pydantic import BaseModel, Field
 from uuid import UUID
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request, status, Form, Header
+from starlette.responses import JSONResponse
 
 app = FastAPI()
+
+
+class NegativeNumberExceptionHandler(Exception):
+    def __init__(self, books_to_return):
+        self.books_to_return = books_to_return
 
 
 class Book(BaseModel):
@@ -19,9 +25,9 @@ class Book(BaseModel):
     rating: int = Field(gt=-1, lt=101)
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
-                "id": "k3162da5-e5a2-4eba-863a-4edcae15b86c",
+                "id": "94d48d22-a805-4c4d-aa99-0560d0daa4af",
                 "title": "example book title",
                 "author": "example book author",
                 "description": "example book description",
@@ -30,7 +36,25 @@ class Book(BaseModel):
         }
 
 
+class BookNoRating(BaseModel):
+    id: UUID
+    title: str = Field(min_length=1)
+    author: str = Field(min_length=1, max_length=100)
+    description: Optional[str] = Field(
+        None,
+        title="description",
+        min_length=1,
+        max_length=100
+    )
+
+
 BOOKS = []
+
+
+@app.exception_handler(NegativeNumberExceptionHandler)
+async def negative_number_exception_handler(request: Request, exception: NegativeNumberExceptionHandler):
+    return JSONResponse(status_code=477, content={
+        "message": f"why do you want {exception.books_to_return} books! you need to read more"})
 
 
 @app.get('/book/{book_id}')
@@ -38,7 +62,15 @@ async def get_book(book_id: UUID):
     for book in BOOKS:
         if book.id == book_id:
             return book
-    return []
+    raise raise_item_can_not_be_found_exception()
+
+
+@app.get('/book/rating/{book_id}', response_model=BookNoRating)
+async def get_book_no_rating(book_id: UUID):
+    for book in BOOKS:
+        if book.id == book_id:
+            return book
+    raise raise_item_can_not_be_found_exception()
 
 
 @app.delete('/book/{book_id}')
@@ -49,7 +81,7 @@ async def delete_book(book_id: UUID):
         if book.id == book_id:
             del BOOKS[counter - 1]
             return {"message": f"book: {book.id} deleted"}
-    return []
+    raise raise_item_can_not_be_found_exception()
 
 
 @app.put('/book/{book_id}')
@@ -61,10 +93,19 @@ async def get_book(book_id: UUID, book: Book):
             BOOKS[counter - 1] = book
             print(BOOKS[counter - 1])
             return BOOKS[counter - 1]
+    raise raise_item_can_not_be_found_exception()
+
+
+@app.post('/book/login')
+async def login(username: str = Form(...), password: str = Form(...)):
+    return {'username': username, 'password': password}
 
 
 @app.get('/')
 async def get_all_books(books_to_return: Optional[int] = None):
+    if books_to_return and books_to_return < 0:
+        raise NegativeNumberExceptionHandler(books_to_return=books_to_return)
+
     if len(BOOKS) < 1:
         create_book_no_api()
 
@@ -79,10 +120,15 @@ async def get_all_books(books_to_return: Optional[int] = None):
     return BOOKS
 
 
-@app.post('/', response_model=Book)
+@app.post('/', response_model=Book, status_code=status.HTTP_201_CREATED)
 async def create_book(book: Book):
-    # BOOKS.append(book)
+    BOOKS.append(book)
     return book
+
+
+@app.get('/header')
+async def read_header(random_header: Optional[str] = Header(None)):
+    return {'Random-Header': random_header}
 
 
 def create_book_no_api():
@@ -122,3 +168,11 @@ def create_book_no_api():
     BOOKS.append(book_2)
     BOOKS.append(book_3)
     BOOKS.append(book_4)
+
+
+def raise_item_can_not_be_found_exception():
+    return HTTPException(
+        status_code=404,
+        detail="Book not found",
+        headers={'X-Header-Error': "Nothing to be seen at UUID"}
+    )
