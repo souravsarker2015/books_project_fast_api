@@ -1,12 +1,11 @@
 from typing import Optional
-from uuid import UUID
-
 from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 import models
 from database import engine, SessionLocal
+from auth import get_current_user, get_user_exception
 
 app = FastAPI()
 
@@ -40,6 +39,14 @@ class ToDo(BaseModel):
                 "complete": False,
             }
         }
+
+
+@app.get('/todo/user')
+async def read_all_by_user(user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not user:
+        raise get_user_exception()
+
+    return db.query(models.Todos).filter(models.Todos.owner_id == user.get('user_id')).all()
 
 
 @app.post('/')
