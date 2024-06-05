@@ -50,12 +50,20 @@ async def read_all_by_user(user: dict = Depends(get_current_user), db: Session =
 
 
 @app.post('/')
-async def create_todo(todo: ToDo, db: Session = Depends(get_db)):
+async def create_todo(
+        todo: ToDo,
+        user: dict = Depends(get_current_user),
+        db: Session = Depends(get_db)):
+    if not user:
+        raise get_user_exception()
+
     todo_model = models.Todos()
     todo_model.title = todo.title
     todo_model.description = todo.description
     todo_model.priority = todo.priority
     todo_model.complete = todo.complete
+    todo_model.owner_id = user.get('user_id')
+
     db.add(todo_model)
     db.commit()
 
@@ -63,8 +71,17 @@ async def create_todo(todo: ToDo, db: Session = Depends(get_db)):
 
 
 @app.put('/{todo_id}')
-async def create_todo(todo_id: int, todo: ToDo, db: Session = Depends(get_db)):
-    todo_model = db.query(models.Todos).filter(models.Todos.id == todo_id).first()
+async def create_todo(
+        todo_id: int,
+        todo: ToDo,
+        user: dict = Depends(get_current_user),
+        db: Session = Depends(get_db)):
+    if not user:
+        raise get_user_exception()
+
+    todo_model = db.query(models.Todos).filter(models.Todos.id == todo_id).filter(
+        models.Todos.owner_id == user.get('user_id')).first()
+
     if todo_model is None:
         raise raise_item_can_not_be_found_exception()
 
@@ -79,8 +96,15 @@ async def create_todo(todo_id: int, todo: ToDo, db: Session = Depends(get_db)):
 
 
 @app.delete('/{todo_id}')
-async def create_todo(todo_id: int, db: Session = Depends(get_db)):
-    todo_model = db.query(models.Todos).filter(models.Todos.id == todo_id).first()
+async def create_todo(
+        todo_id: int,
+        user: dict = Depends(get_current_user),
+        db: Session = Depends(get_db)):
+    if not user:
+        raise get_user_exception()
+
+    todo_model = db.query(models.Todos).filter(models.Todos.id == todo_id).filter(
+        models.Todos.owner_id == user.get('user_id')).first()
 
     if todo_model is None:
         raise raise_item_can_not_be_found_exception()
@@ -97,8 +121,13 @@ async def read_all(db: Session = Depends(get_db)):
 
 
 @app.get('/todo/{todo_id}')
-async def read_one(todo_id: int, db: Session = Depends(get_db)):
-    todo_model = db.query(models.Todos).filter(models.Todos.id == todo_id).first()
+async def read_one(todo_id: int, user: dict = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not user:
+        raise get_user_exception()
+
+    todo_model = db.query(models.Todos).filter(models.Todos.id == todo_id).filter(
+        models.Todos.owner_id == user.get('user_id')).first()
+    # todo_model = db.query(models.Todos).filter(models.Todos.id == todo_id).first()
     if todo_model:
         return todo_model
     raise raise_item_can_not_be_found_exception()
